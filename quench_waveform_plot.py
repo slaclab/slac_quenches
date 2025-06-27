@@ -3,15 +3,17 @@ import numpy as np
 import re # importing regular expression module
 
 # changes with each file
-filename = 'ACCL_L3B_3180_20220630_154604_QUENCH.txt'
-faultname = 'ACCL:L3B:3180:CAV:FLTAWF'
-timestamp = '2022-06-30_15:04.712966'
+filename = 'ACCL_L3B_3180_20220630_164905_QUENCH.txt'   # imput data file
+
+# cavity details
+faultname = 'ACCL:L3B:3180:CAV:FLTAWF'      # PV or fault string to search for 
+timestamp = '2022-06-30_16:49:05.440831'    # precise timestamp of the waveform
 
 # read the entire file into memory
 with open(filename,'r') as file:
     lines = file.readlines()
 
-# find the start and end lines based on keywords
+# initilization: find the section of interest based on keywords 
 start_line = None 
 end_line = None
 data_lines = []
@@ -19,34 +21,23 @@ data_lines = []
 # flag to indicate that we are in the right section
 in_section = False
 
-# for i, line in enumerate(lines):
-#     print(f"Checking line {i}: {line.strip()}")
-#     if faultname in line and timestamp in line:
-#         start_line = i
-#         in_section = True
-#         print(f"Found section start at line {i}")
-#     elif faultname not in line and timestamp not in line and in_section:
-#         end_line = i
-#         print(f"Found section and end at line {i}")
-#         break
-#     if in_section:
-#         data_lines.append(line.strip()) # extracting data lines
+# building the string to identify the start of waveform section
+search_string = f"{faultname} {timestamp}"
 
+# loop through lines to find the section matching the fault and timestamp
 for i, line in enumerate(lines):
-    print(f"Checking line {i}")
-    if "ACCL:L3B:3180:CAV:FLTAWF 2022-06-30_15:46:04.712966" in line:
+    if search_string in line:
         start_line = i
         in_section = True
         print(f"Found section start at line {i}")
-    elif "ACCL:L3B:3180:CAV:FLTAWF 2022-06-30_15:46:04.712966" not in line and in_section:
+    elif in_section and search_string not in line:
         end_line = i
-        print(f"Found section and end line at {i}")
+        print(f"Found section end at line {i}")
         break
     if in_section:
-        data_lines.append(line.strip()) # extracting data lines
-
-# shows only first 10 to be brief
-print(f"Extracted data lines: {data_lines[:10]}...")
+        # extracting just the part of the line that comes after the timestamp
+        data_part = line.split(timestamp, 1)[-1]    # removes the timestamp and label
+        data_lines.append(data_part.strip())        # extracting data lines
 
 # extracting numeric data from each line using regular expressions
 data = []
@@ -55,48 +46,55 @@ for line in data_lines:
     numbers = re.findall(r"[-+]?\d*\.\d+|\d+", line) #matches integers or floats
     if numbers:
         # convering the first number found to float and add it to data list
-        data.append([float(num) for num in numbers]) # add all numbers in the line to data
+        # data.append([float(num) for num in numbers])  # add all numbers in the line to data
+        data.extend([float(num) for num in numbers])    # flattening the data list (extend vs append)
     else:
         print(f"Skipping line with no numeric data: {line}")
 
-# convert the data lines to floats
-# try:
-#     data = [float(line) for line in data_lines]
-#     print(f"Converted data: {data}")
-# except ValueError as e:
-#     print (f"Error converting data: {e}")
-#     data = []
-
-# start_line = 52
-# end_line = 53
-# data_lines = lines[start_line:end_line]
-# data = [float(line.strip()) for line in data_lines]
-
-# check that the data is collected
-print(f"Total number of data points collected: {len(data)}")
-if len(data) > 0: 
-    print(f"First few data points: {data[:10]}")
+# diagnostic check for data content and confirming proper structure
+print("\n== Data Diagnostics ===")
+print(f"Type of 'data': {type(data)}")
+if len(data) > 0:
+    print(f"Type of first element: {type(data[0])}")
+    print(f"Number of data points: {len(data)}")
+    print(f"First 10 values: {data[:10]}")
 else:
-    print("No valid data extracted.")
+    print("No valid numberic data extracted")
+print("=======================\n")
 
+# plotting the data if it is valid
 if data: 
-    # check the min and max values of the data
-    data_min = np.min(data)
-    data_max = np.max(data)
-    print(f"Data range: min = {data_min}, max = {data_max}")
-
     # time axis assuming uniform spacing
     time = list(range(len(data)))
+    # time = np.linspace(-0.04, 0.08, len(data))
 
-    # plotting the data
-    plt.figure(figsize=(14,6))
-    plt.plot(time, data, label=filename, color='blue')
-    plt.xlabel('Seconds')
-    plt.ylabel('MV')
-    plt.title('Quench Waveform')
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    # validate the lengths match
+    print(f"Length of time axis: {len(time)}")
+    print(f"Length of data: {len(data)}")
+    if len(time) != len(data):
+        print("Time and data lengths do not match. Skipping plot.")
+    else:
+        # confirm the min and max values of the data
+        data_min = np.min(data)
+        data_max = np.max(data)
+        print(f"Data range: min = {data_min}, max = {data_max}")
+
+        # plotting the data
+        plt.figure(figsize=(14,6))
+        plt.plot(time, data, label="Cavity", color='blue')
+        plt.xlabel('Number of Data Points')
+        plt.ylabel('MV')
+        plt.title(f'Quench Waveform {faultname} {timestamp}')
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+
+        # saving the figure
+        safe_faultname = search_string.replace(":", "_")    # search_string = f"{faultname} {timestamp}"
+        plot_filename = f"cavity_{filename.replace('.txt','')}.png"
+        plt.savefig(plot_filename)
+        print(f"Plot saved as: {plot_filename}")
+
+        plt.show()
 else:
     print("No data was extracted, no plot will be displayed.")
