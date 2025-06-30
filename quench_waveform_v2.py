@@ -39,8 +39,8 @@ def extract_data(lines, faultname, timestamp):
     # extracting numeric data from each line using regular expressions
     data = []
     for line in data_lines:
-        # using regex to find all numbers in the line
-        numbers = re.findall(r"[-+]?\d*\.\d+|\d+", line) #matches integers or floats
+        # using regex to find all numbers in the line 
+        numbers = re.findall(r"[-+]?\d*\.\d+|\d+", line) # matches integers or floats
         if numbers:
             # convering the first number found to float and add it to data list
             # data.append([float(num) for num in numbers])  # add all numbers in the line to data
@@ -90,14 +90,14 @@ reverse_data = reverse_data[:min_length]
 decay_data = decay_data[:min_length]
 
 # plotting them all on the same axes
-time = list(range(min_length))
+time_range = list(range(min_length))
 
 # plot setup
 plt.figure(figsize=(14,6))
-plt.plot(time, cavity_data, label = "Cavity", color = 'blue')
-plt.plot(time, forward_data, label = "Forward Power", color = 'green')
-plt.plot(time, reverse_data, label = "Reverse Power", color = 'red')
-plt.scatter(time, decay_data, label = "Normal Cavity Decay Reference", color = 'cyan', s=1, marker='o')
+plt.plot(time_range, cavity_data, label = "Cavity", color = 'blue')
+plt.plot(time_range, forward_data, label = "Forward Power", color = 'green')
+plt.plot(time_range, reverse_data, label = "Reverse Power", color = 'red')
+plt.scatter(time_range, decay_data, label = "Normal Cavity Decay Reference", color = 'cyan', s=1, marker='o')
 
 # plot formatting
 plt.xlabel('Number of Data Points')
